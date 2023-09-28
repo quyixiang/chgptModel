@@ -16,6 +16,3 @@ Depends:
     bayesplot,
     survival,
     posterior
-Collate: 
-    'dataloader.R'
-    'model.R'

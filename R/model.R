@@ -44,8 +44,8 @@
 #'   fmla.tte = example_formula_tte, fmla.long = example_formula_long,
 #'   longdat.time = "YEAR", id.indicator = "id",
 #'   iter_warmup = 1000, iter_sampling = 1000,
-#'   non_censor_only = TRUE,
-#'   chains = 4, parallel_chains = 4, adapt_delta = 0.8, refresh = 200
+#'   chains = 4, parallel_chains = 4, adapt_delta = 0.8, refresh = 200,
+#'   non_censor_only = TRUE
 #' )
 #' # Posterior plot
 #' results$draws(c("chgpt_mean", "chgpt_sd")) %>% mcmc_trace()

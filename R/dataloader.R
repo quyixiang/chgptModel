@@ -64,15 +64,17 @@ load_onearm_data <- function(
   longpredictor.name <- all.vars(fmla.long)[-1]
   longoutcome.name <- all.vars(fmla.long)[1]
 
-  longdat.obs <- merge(longdat, survdat %>% select(all_of(id.indicator), all_of(tteeventind.name), all_of(tteoutcome.name), all_of(ttepredictor.name)))
-  longdat.obs <- longdat.obs %>%
+  if (!(tteeventind.name %in% names(longdat))) {
+    longdat <- merge(longdat, survdat %>% select(all_of(id.indicator), all_of(tteeventind.name)), by = id.indicator)
+  }
+  longdat.obs <- longdat %>%
     filter((!!sym(tteeventind.name)) == TRUE, (!!sym(longdat.time)) > 0)
   longdat.obs[["id.new"]] <- as.numeric(as.factor(longdat.obs[[id.indicator]]))
   longdat.obs <- longdat.obs %>%
     arrange(id.new, !!sym(longdat.time))
 
-  longdat.cen <- merge(longdat, survdat %>% select(all_of(id.indicator), all_of(tteeventind.name), all_of(tteoutcome.name), all_of(ttepredictor.name)))
-  longdat.cen <- longdat.cen %>%
+
+  longdat.cen <- longdat %>%
     filter((!!sym(tteeventind.name)) == FALSE, (!!sym(longdat.time)) > 0)
   longdat.cen[["id.new"]] <- as.numeric(as.factor(longdat.cen[[id.indicator]]))
   longdat.cen <- longdat.cen %>%
@@ -87,8 +89,8 @@ load_onearm_data <- function(
     summarise(.groups = "drop") %>%
     as.data.frame()
 
-  survdat.obs <- merge(survdat, iddata.obs)
-  survdat.cen <- merge(survdat, iddata.cen)
+  survdat.obs <- merge(survdat, iddata.obs, by = id.indicator)
+  survdat.cen <- merge(survdat, iddata.cen, by = id.indicator)
 
   standat.list <-
     list(
