@@ -15,4 +15,6 @@ Depends:
     dplyr,
     bayesplot,
     survival,
-    posterior
+    posterior,
+    randcorr,
+    TruncatedNormal
