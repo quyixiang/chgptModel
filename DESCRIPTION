@@ -17,4 +17,5 @@ Depends:
     survival,
     posterior,
     randcorr,
-    TruncatedNormal
+    TruncatedNormal,
+    mvtnorm

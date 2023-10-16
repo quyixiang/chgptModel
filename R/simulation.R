@@ -92,7 +92,8 @@ generate_simulation_data <- function(
     seed = 1) {
   # Set the seed for random number generation
   set.seed(seed)
-
+  n_final <- n
+  n <- 3 * n
   # First generate X
   # Get variable names excluding the response variable
   Xtte.name <- all.vars(fmla.tte)[-c(1:2)]
@@ -120,7 +121,7 @@ generate_simulation_data <- function(
   X.model <- as.matrix(X_combined_unique)
 
   # Generate TTE data
-  id <- 1:n
+  id <- c(1:n)
   survdat <- as.data.frame(X.model)
   survdat$id <- id
   survdat <- survdat[, c("id", names(survdat)[!names(survdat) %in% "id"])]
@@ -129,7 +130,7 @@ generate_simulation_data <- function(
   } else {
     survdat$event_years <- rweibullph(Xtte, betatte, scalette, scalette)
   }
-  survdat$nvisits <- floor(survdat$event_years / time.interval)
+  survdat$nvisits <- ceiling(survdat$event_years / time.interval)
 
   survdat <- survdat %>% filter(nvisits > 0)
   survdat$id <- 1:nrow(survdat)
@@ -140,12 +141,7 @@ generate_simulation_data <- function(
   survdat[[Xtte.indicator.name]] <- ifelse(survdat$event_years <= survdat$censor_years, 1, 0)
   survdat[[Xtte.response.name]] <- pmin(survdat$censor_years, survdat$event_years)
 
-  cat(
-    paste0(
-      "Number of Censor: ", sum(survdat[[Xtte.indicator.name]] == 0), "\nNumber of Observation: ", sum(survdat[[Xtte.indicator.name]] == 1),
-      "\nProportion of Censor: ", sum(survdat[[Xtte.indicator.name]] == 0) / nrow(survdat)
-    )
-  )
+
 
   # Generate random effects
   if (!is.null(randeff.corr)) {
@@ -164,26 +160,42 @@ generate_simulation_data <- function(
     filter(nvisits > 0)
   rep.indx <- lapply(1:nrow(longdat), function(i) rep(longdat$id[i], longdat$nvisits[i])) %>% unlist()
 
+  set.seed(seed)
   longdat <- longdat[rep.indx, ] %>%
     group_by(id) %>%
     mutate(visitnum = row_number()) %>%
-    mutate(visittime = 60 / 365 * visitnum) %>%
+    rowwise() %>%
+    mutate(rand_val = rnorm(1, mean = 0, sd = 0.02)) %>%
+    mutate(visittime = time.interval * visitnum + rand_val) %>%
+    ungroup() %>%
     mutate(
       delta = visittime - omega,
       eta_re = b1 + if_else(delta < 0, b2 * delta, b3 * delta)
     ) %>%
-    ungroup() %>%
     rowwise() %>%
     mutate(
       eta_fe = sum(c_across(all_of(Xlong.name.intercept)) * beta_y),
       {{ Xlong.response.name }} := rnorm(1, mean = eta_fe + eta_re, sd = sd_y)
     )
 
+
   # Make the maximum of long data less than the event/censor time
   longdat <- longdat %>% filter(visittime <= !!sym(Xtte.response.name))
   longdat <- longdat %>%
     group_by(id) %>%
-    mutate(visitnum_censor = row_number())
+    mutate(visitnum_aftercensor = row_number())
+
+  # we only keep these subjects
+  final_id <- unique(longdat$id)[1:n_final]
+  longdat <- longdat %>% filter(id %in% final_id)
+  survdat <- survdat %>% filter(id %in% final_id)
+
+  cat(
+    paste0(
+      "Number of Censor: ", sum(survdat[[Xtte.indicator.name]] == 0), "\nNumber of Observation: ", sum(survdat[[Xtte.indicator.name]] == 1),
+      "\nProportion of Censor: ", sum(survdat[[Xtte.indicator.name]] == 0) / nrow(survdat), "\n"
+    )
+  )
 
   # We also need to save the initial parameters finally
   rownames(randeff.corr) <- c("omega", "b1", "b2", "b3")
