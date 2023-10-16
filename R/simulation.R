@@ -38,57 +38,65 @@ rweibullph <- function(X, beta, shape, scale) {
 # fmla.tte <- as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE)
 # fmla.long <- as.formula(PCHG ~ Y0SCALE + Y2SCALE)
 #
-# betatte <- c(2, 0.201, 0.5)
-# scalette <- 2.41
-# shapette <- 1.85
-# beta_y <- c(1, -0.025, 1)
-# sd_y <- 0.07
+# beta.tte <- c(2, 0.201, 0.5)
+# scale.tte <- 2.41
+# shape.tte <- 1.85
+# beta.y <- c(1, -0.025, 1)
+# sd.y <- 0.07
 # n <- 100
 
-#' Generate Simulation Data for Time-to-Event and Longitudinal Data Analyses
+#' Generate Simulated Data for Time-to-Event and Longitudinal Analyses
 #'
-#' This function generates simulated data suitable for time-to-event and longitudinal data analyses,
-#' based on the provided parameters and formulae.
+#' The generate_simulation_data function provides a convenient way to produce simulated data
+#' tailored for both time-to-event and longitudinal data analyses. This can be particularly useful for methodological studies,
+#' preliminary analyses, and educational purposes.
 #'
-#' @param fmla.tte A formula object specifying the structure of the time-to-event model.
-#' @param fmla.long A formula object specifying the structure of the longitudinal data model.
-#' @param betatte A numeric vector specifying the beta parameters for the TTE model.
-#' @param scalette A numeric value specifying the scale parameter for the TTE model.
-#' @param shapette A numeric value specifying the shape parameter for the TTE model.
-#' @param beta_y A numeric vector specifying the beta parameters for the longitudinal data model.
-#' @param sd_y A numeric value specifying the standard deviation of the Y variable in the longitudinal data model.
-#' @param randeff.mean A numeric vector specifying the mean of the random effects.
-#' @param randeff.sd A numeric vector specifying the standard deviations of the random effects.
-#' @param randeff.corr A matrix specifying the correlation structure of the random effects, or NULL to generate a random structure.
-#' @param n An integer specifying the number of observations to simulate.
-#' @param censor.parameter A numeric value specifying the parameter for the exponential distribution used to generate censoring times.
-#' @param time.interval A numeric value specifying the time interval for visits in the longitudinal data.
-#' @param seed An integer specifying the seed for random number generation.
+#' @section Parameters:
+#' @param fmla.tte A formula object that delineates the structure of the time-to-event model.
+#' @param fmla.long Another formula object that outlines the structure of the longitudinal data model.
+#' @param beta.tte A numeric vector that defines the beta coefficients for the TTE model.
+#' @param scale.tte A single numeric value that sets the scale parameter for the TTE model.
+#' @param shape.tte A single numeric value that sets the shape parameter for the TTE model.
+#' @param beta.y A numeric vector that defines the beta coefficients for the longitudinal data model.
+#' @param sd.y A single numeric value, representing the standard deviation of the Y variable in the longitudinal data model.
+#' @param randeff.mean A numeric vector that defines the average of the random effects.
+#' @param randeff.sd A numeric vector that designates the standard deviations associated with the random effects.
+#' @param randeff.corr A matrix that sets the correlation structure of the random effects. If NULL, a random structure will be generated.
+#' @param n An integer that represents the number of observations to simulate.
+#' @param censor.parameter A numeric value used to designate the parameter for the exponential distribution, which is employed to derive censoring times.
+#' @param normal.tte Logical indicating if the time-to-event model should follow a log normal distribution. Default is FALSE.
+#' @param sd.tte Optional numeric value representing the standard deviation for the time-to-event model. Only used if normal.tte is TRUE.
+#' @param time.interval A numeric value that stipulates the expected time interval for visits in the longitudinal data.
+#' @param time.interval.sd A numeric value representing the standard deviation for the time interval of visits in the longitudinal data. Default is 0.02.
+#' @param seed An integer used to set the seed for random number generation, ensuring reproducibility.
 #'
-#' @return A list containing three elements:
+#' @section Returns:
+#' The function returns a list comprising three elements:
 #' \itemize{
-#'  \item \code{survdat} A data frame containing the simulated survival data.
-#'  \item \code{longdat} A data frame containing the simulated longitudinal data.
-#'  \item \code{simulation.para} A list containing the parameters used in the simulation.
+#' \item \code{survdat}: A data frame containing the simulated survival data.
+#' \item \code{longdat}: A data frame encompassing the simulated longitudinal data.
+#' \item \code{simulation.para}: A list that consolidates the parameters applied during the simulation.
 #' }
 #'
-#' @examples
+#' @section Examples:
+#' \preformatted{
 #' simulation.list <- generate_simulation_data(
-#'   fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE),
-#'   fmla.long = as.formula(PCHG ~ 0 + Y0SCALE + Y2SCALE + Y3),
-#'   betatte = c(0.1, 0.05, 0.1), scalette = 2, shapette = 2,
-#'   beta_y = c(0.02, -0.02, 0.03), sd_y = 0.1,
-#'   randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
-#'   n = 1000, censor.parameter = 2, time.interval = 0.1
+#' fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE),
+#' fmla.long = as.formula(PCHG ~ 0 + Y0SCALE + Y2SCALE + Y3),
+#' beta.tte = c(0.1, 0.05, 0.1), scale.tte = 2, shape.tte = 2,
+#' beta.y = c(0.02, -0.02, 0.03), sd.y = 0.1,
+#' randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
+#' n = 1000, censor.parameter = 2, normal.tte = FALSE, time.interval = 0.1
 #' )
+#' }
 #' @export
 generate_simulation_data <- function(
     fmla.tte, fmla.long,
-    betatte, scalette = NULL, shapette = NULL,
-    normal.tte = FALSE, sd_tte = NULL, # sd_tte should not be null if normal.tte=TRUE
-    beta_y, sd_y,
+    beta.tte, scale.tte = NULL, shape.tte = NULL,
+    normal.tte = FALSE, sd.tte = NULL, # sd.tte should not be null if normal.tte=TRUE
+    beta.y, sd.y,
     randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
-    n = 100, censor.parameter, time.interval = 0.1,
+    n = 100, censor.parameter, time.interval = 0.1, time.interval.sd = 0.02,
     seed = 1) {
   # Set the seed for random number generation
   set.seed(seed)
@@ -126,9 +134,9 @@ generate_simulation_data <- function(
   survdat$id <- id
   survdat <- survdat[, c("id", names(survdat)[!names(survdat) %in% "id"])]
   if (normal.tte) {
-    survdat$event_years <- exp(rnorm(Xtte %*% betatte, sd_tte))
+    survdat$event_years <- exp(rnorm(Xtte %*% beta.tte, sd.tte))
   } else {
-    survdat$event_years <- rweibullph(Xtte, betatte, scalette, scalette)
+    survdat$event_years <- rweibullph(Xtte, beta.tte, scale.tte, scale.tte)
   }
   survdat$nvisits <- ceiling(survdat$event_years / time.interval)
 
@@ -140,8 +148,6 @@ generate_simulation_data <- function(
   survdat$censor_years <- rexp(nrow(survdat), censor.parameter)
   survdat[[Xtte.indicator.name]] <- ifelse(survdat$event_years <= survdat$censor_years, 1, 0)
   survdat[[Xtte.response.name]] <- pmin(survdat$censor_years, survdat$event_years)
-
-
 
   # Generate random effects
   if (!is.null(randeff.corr)) {
@@ -165,7 +171,7 @@ generate_simulation_data <- function(
     group_by(id) %>%
     mutate(visitnum = row_number()) %>%
     rowwise() %>%
-    mutate(rand_val = rnorm(1, mean = 0, sd = 0.02)) %>%
+    mutate(rand_val = rnorm(1, mean = 0, sd = time.interval.sd)) %>%
     mutate(visittime = time.interval * visitnum + rand_val) %>%
     ungroup() %>%
     mutate(
@@ -174,16 +180,20 @@ generate_simulation_data <- function(
     ) %>%
     rowwise() %>%
     mutate(
-      eta_fe = sum(c_across(all_of(Xlong.name.intercept)) * beta_y),
-      {{ Xlong.response.name }} := rnorm(1, mean = eta_fe + eta_re, sd = sd_y)
+      eta_fe = sum(c_across(all_of(Xlong.name.intercept)) * beta.y),
+      {{ Xlong.response.name }} := rnorm(1, mean = eta_fe + eta_re, sd = sd.y)
     )
 
 
   # Make the maximum of long data less than the event/censor time
   longdat <- longdat %>% filter(visittime <= !!sym(Xtte.response.name))
+
+  # Get the maximum row number for each id
   longdat <- longdat %>%
     group_by(id) %>%
-    mutate(visitnum_aftercensor = row_number())
+    mutate(nvisits_aftercensor = max(row_number())) %>%
+    ungroup()
+  survdat <- merge(survdat, longdat %>% select(id, nvisits_aftercensor) %>% distinct(id, .keep_all = TRUE))
 
   # we only keep these subjects
   final_id <- unique(longdat$id)[1:n_final]
@@ -207,11 +217,11 @@ generate_simulation_data <- function(
   # )
 
   simulation.para <- c(
-    betatte = betatte,
-    scalette = scalette,
-    shapette = shapette,
-    beta_y = beta_y,
-    sd_y = sd_y,
+    beta.tte = beta.tte,
+    scale.tte = scale.tte,
+    shape.tte = shape.tte,
+    beta.y = beta.y,
+    sd.y = sd.y,
     randeff.mean = randeff.mean,
     randeff.sd = randeff.sd,
     randeff.corr = randeff.corr
@@ -223,8 +233,8 @@ generate_simulation_data <- function(
 # simulation.list <- generate_simulation_data(
 #   fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE),
 #   fmla.long = as.formula(PCHG ~ 0 + Y0SCALE + Y2SCALE + Y3),
-#   betatte = c(0.1, 0.05, 0.1), scalette = 2, shapette = 2,
-#   beta_y = c(0.02, -0.02, 0.03), sd_y = 0.1,
+#   beta.tte = c(0.1, 0.05, 0.1), scale.tte = 2, shape.tte = 2,
+#   beta.y = c(0.02, -0.02, 0.03), sd.y = 0.1,
 #   randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
 #   n = 1000, censor.parameter = 2, time.interval = 0.1
 # )
@@ -254,7 +264,7 @@ generate_simulation_data <- function(
 #   chains = 4, parallel_chains = 4, adapt_delta = 0.8, refresh = 200
 # )
 #
-# parms <- c("beta_tte", "scale_tte", "shape_tte", "beta_y", "sd_y","chgpt_mean", "b_mean", "chgpt_sd", "b_sd", "randeff_corr")
+# parms <- c("beta_tte", "scale_tte", "shape_tte", "beta.y", "sd.y","chgpt_mean", "b_mean", "chgpt_sd", "b_sd", "randeff_corr")
 #
 # simulation.results$draws(c("chgpt_mean", "chgpt_sd")) %>% mcmc_trace()
 #
