@@ -2,75 +2,103 @@
 % Please edit documentation in R/simulation.R
 \name{generate_simulation_data}
 \alias{generate_simulation_data}
-\title{Generate Simulation Data for Time-to-Event and Longitudinal Data Analyses}
+\title{Generate Simulated Data for Time-to-Event and Longitudinal Analyses}
 \usage{
 generate_simulation_data(
   fmla.tte,
   fmla.long,
-  betatte,
-  scalette = NULL,
-  shapette = NULL,
+  bootstrap = FALSE,
+  bootstrapfrom = NULL,
+  id.name = "id",
+  beta.tte,
+  scale.tte = NULL,
+  shape.tte = NULL,
   normal.tte = FALSE,
-  sd_tte = NULL,
-  beta_y,
-  sd_y,
+  sd.tte = NULL,
+  beta.y,
+  sd.y,
   randeff.mean = c(0.5, 0, -1, 1),
   randeff.sd = rep(0.2, 4),
   randeff.corr = NULL,
   n = 100,
   censor.parameter,
   time.interval = 0.1,
+  time.interval.sd = 0.02,
   seed = 1
 )
 }
 \arguments{
-\item{fmla.tte}{A formula object specifying the structure of the time-to-event model.}
+\item{fmla.tte}{A formula object that delineates the structure of the time-to-event model.}
 
-\item{fmla.long}{A formula object specifying the structure of the longitudinal data model.}
+\item{fmla.long}{Another formula object that outlines the structure of the longitudinal data model.}
 
-\item{betatte}{A numeric vector specifying the beta parameters for the TTE model.}
+\item{bootstrap}{A logical value indicating whether to bootstrap the data. If TRUE, the function will sample from the dataset specified in bootstrapfrom. Default is FALSE.}
 
-\item{scalette}{A numeric value specifying the scale parameter for the TTE model.}
+\item{bootstrapfrom}{A data frame. When bootstrap is TRUE, this data frame is used for resampling. Default is NULL.}
 
-\item{shapette}{A numeric value specifying the shape parameter for the TTE model.}
+\item{id.name}{A character string specifying the name of the ID column in the bootstrapfrom dataset. Default is "id".}
 
-\item{beta_y}{A numeric vector specifying the beta parameters for the longitudinal data model.}
+\item{beta.tte}{A numeric vector that defines the beta coefficients for the TTE model.}
 
-\item{sd_y}{A numeric value specifying the standard deviation of the Y variable in the longitudinal data model.}
+\item{scale.tte}{A single numeric value that sets the scale parameter for the TTE model.}
 
-\item{randeff.mean}{A numeric vector specifying the mean of the random effects.}
+\item{shape.tte}{A single numeric value that sets the shape parameter for the TTE model.}
 
-\item{randeff.sd}{A numeric vector specifying the standard deviations of the random effects.}
+\item{normal.tte}{Logical indicating if the time-to-event model should follow a log normal distribution. Default is FALSE.}
 
-\item{randeff.corr}{A matrix specifying the correlation structure of the random effects, or NULL to generate a random structure.}
+\item{sd.tte}{Optional numeric value representing the standard deviation for the time-to-event model. Only used if normal.tte is TRUE.}
 
-\item{n}{An integer specifying the number of observations to simulate.}
+\item{beta.y}{A numeric vector that defines the beta coefficients for the longitudinal data model.}
 
-\item{censor.parameter}{A numeric value specifying the parameter for the exponential distribution used to generate censoring times.}
+\item{sd.y}{A single numeric value, representing the standard deviation of the Y variable in the longitudinal data model.}
 
-\item{time.interval}{A numeric value specifying the time interval for visits in the longitudinal data.}
+\item{randeff.mean}{A numeric vector that defines the average of the random effects.}
 
-\item{seed}{An integer specifying the seed for random number generation.}
-}
-\value{
-A list containing three elements:
-\itemize{
- \item \code{survdat} A data frame containing the simulated survival data.
- \item \code{longdat} A data frame containing the simulated longitudinal data.
- \item \code{simulation.para} A list containing the parameters used in the simulation.
-}
+\item{randeff.sd}{A numeric vector that designates the standard deviations associated with the random effects.}
+
+\item{randeff.corr}{A matrix that sets the correlation structure of the random effects. If NULL, a random structure will be generated.}
+
+\item{n}{An integer that represents the number of observations to simulate.}
+
+\item{censor.parameter}{A numeric value used to designate the parameter for the exponential distribution, which is employed to derive censoring times.}
+
+\item{time.interval}{A numeric value that stipulates the expected time interval for visits in the longitudinal data.}
+
+\item{time.interval.sd}{A numeric value representing the standard deviation for the time interval of visits in the longitudinal data. Default is 0.02.}
+
+\item{seed}{An integer used to set the seed for random number generation, ensuring reproducibility.}
 }
 \description{
-This function generates simulated data suitable for time-to-event and longitudinal data analyses,
-based on the provided parameters and formulae.
+The generate_simulation_data function provides a convenient way to produce simulated data
+tailored for both time-to-event and longitudinal data analyses. This can be particularly useful for methodological studies,
+preliminary analyses, and educational purposes.
 }
-\examples{
+\section{Parameters}{
+
+}
+
+\section{Returns}{
+
+The function returns a list comprising three elements:
+\itemize{
+\item \code{survdat}: A data frame containing the simulated survival data.
+\item \code{longdat}: A data frame encompassing the simulated longitudinal data.
+\item \code{simulation.para}: A list that consolidates the parameters applied during the simulation.
+}
+}
+
+\section{Examples}{
+
+\preformatted{
 simulation.list <- generate_simulation_data(
-  fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE),
-  fmla.long = as.formula(PCHG ~ 0 + Y0SCALE + Y2SCALE + Y3),
-  betatte = c(0.1, 0.05, 0.1), scalette = 2, shapette = 2,
-  beta_y = c(0.02, -0.02, 0.03), sd_y = 0.1,
-  randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
-  n = 1000, censor.parameter = 2, time.interval = 0.1
+fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE),
+fmla.long = as.formula(PCHG ~ 0 + Y0SCALE + Y2SCALE + Y3),
+
+beta.tte = c(0.1, 0.05, 0.1), scale.tte = 2, shape.tte = 2,
+beta.y = c(0.02, -0.02, 0.03), sd.y = 0.1,
+randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
+n = 1000, censor.parameter = 2, normal.tte = FALSE, time.interval = 0.1
 )
 }
+}
+

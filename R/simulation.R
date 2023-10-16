@@ -54,6 +54,9 @@ rweibullph <- function(X, beta, shape, scale) {
 #' @section Parameters:
 #' @param fmla.tte A formula object that delineates the structure of the time-to-event model.
 #' @param fmla.long Another formula object that outlines the structure of the longitudinal data model.
+#' @param bootstrap A logical value indicating whether to bootstrap the data. If TRUE, the function will sample from the dataset specified in bootstrapfrom. Default is FALSE.
+#' @param bootstrapfrom A data frame. When bootstrap is TRUE, this data frame is used for resampling. Default is NULL.
+#' @param id.name A character string specifying the name of the ID column in the bootstrapfrom dataset. Default is "id".
 #' @param beta.tte A numeric vector that defines the beta coefficients for the TTE model.
 #' @param scale.tte A single numeric value that sets the scale parameter for the TTE model.
 #' @param shape.tte A single numeric value that sets the shape parameter for the TTE model.
@@ -83,6 +86,7 @@ rweibullph <- function(X, beta, shape, scale) {
 #' simulation.list <- generate_simulation_data(
 #' fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE),
 #' fmla.long = as.formula(PCHG ~ 0 + Y0SCALE + Y2SCALE + Y3),
+#'
 #' beta.tte = c(0.1, 0.05, 0.1), scale.tte = 2, shape.tte = 2,
 #' beta.y = c(0.02, -0.02, 0.03), sd.y = 0.1,
 #' randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
@@ -92,6 +96,7 @@ rweibullph <- function(X, beta, shape, scale) {
 #' @export
 generate_simulation_data <- function(
     fmla.tte, fmla.long,
+    bootstrap = FALSE, bootstrapfrom = NULL, id.name = "id",
     beta.tte, scale.tte = NULL, shape.tte = NULL,
     normal.tte = FALSE, sd.tte = NULL, # sd.tte should not be null if normal.tte=TRUE
     beta.y, sd.y,
@@ -110,10 +115,22 @@ generate_simulation_data <- function(
   Xtte.indicator.name <- all.vars(fmla.tte)[2]
   Xlong.response.name <- all.vars(fmla.long)[1]
   Xall.name <- unique(c(Xtte.name, Xlong.name))
+  if (bootstrap) {
+    id.sel <- sample(bootstrapfrom[[id.name]], size = n, replace = TRUE)
 
-  # Create a matrix with values from a standard normal distribution
-  X <- matrix(rnorm(n * length(Xall.name), mean = 0, sd = 1), nrow = n, ncol = length(Xall.name), byrow = FALSE)
+    # Initialize empty data frame
+    X <- data.frame(matrix(ncol = length(Xall.name), nrow = 0))
+    colnames(X) <- Xall.name
 
+    # Loop through each ID in id.sel and bind the rows to X
+    for (id in id.sel) {
+      X <- rbind(X, bootstrapfrom[bootstrapfrom[[id.name]] == id, Xall.name, drop = FALSE]) %>% as.matrix()
+    }
+    row.names(X) <- c(1:n)
+  } else {
+    # Create a matrix with values from a standard normal distribution
+    X <- matrix(rnorm(n * length(Xall.name), mean = 0, sd = 1), nrow = n, ncol = length(Xall.name), byrow = FALSE)
+  }
   # Assign column names from Xtte.name to the matrix
   colnames(X) <- Xall.name
   X <- data.frame(X)
