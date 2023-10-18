@@ -151,7 +151,7 @@ generate_simulation_data <- function(
   survdat$id <- id
   survdat <- survdat[, c("id", names(survdat)[!names(survdat) %in% "id"])]
   if (normal.tte) {
-    survdat$event_years <- exp(rnorm(Xtte %*% beta.tte, sd.tte))
+    survdat$event_years <- exp(rnorm(n = n, mean = Xtte %*% beta.tte, sd = sd.tte))
   } else {
     survdat$event_years <- rweibullph(Xtte, beta.tte, scale.tte, scale.tte)
   }
