@@ -153,7 +153,7 @@ generate_simulation_data <- function(
   if (normal.tte) {
     survdat$event_years <- exp(rnorm(n = n, mean = Xtte %*% beta.tte, sd = sd.tte))
   } else {
-    survdat$event_years <- rweibullph(Xtte, beta.tte, scale.tte, scale.tte)
+    survdat$event_years <- rweibullph(Xtte, beta.tte, shape = shape.tte, scale = scale.tte)
   }
   survdat$nvisits <- ceiling(survdat$event_years / time.interval)
 
@@ -248,14 +248,14 @@ generate_simulation_data <- function(
 
 # # test
 # simulation.list <- generate_simulation_data(
-#   fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE),
-#   fmla.long = as.formula(PCHG ~ 0 + Y0SCALE + Y2SCALE + Y3),
-#   beta.tte = c(0.1, 0.05, 0.1), scale.tte = 2, shape.tte = 2,
+#   fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ 0+Y0SCALE),
+#   fmla.long = as.formula(PCHG ~ 0 + Y0SCALE ),
+#   beta.tte = c(0.1, 0.05, 0.1), scale.tte = 3, shape.tte = 2,
 #   beta.y = c(0.02, -0.02, 0.03), sd.y = 0.1,
 #   randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
-#   n = 1000, censor.parameter = 2, time.interval = 0.1
+#   n = 200, censor.parameter = 2, time.interval = 0.1
 # )
-#
+# #
 # survdat.simulation <- simulation.list[["survdat"]]
 # longdat.simulation <- simulation.list[["longdat"]]
 #
@@ -272,24 +272,24 @@ generate_simulation_data <- function(
 #
 #
 # simulation.results <- chgptMCMC(
-#   fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ Y0SCALE + Y1SCALE),
-#   fmla.long = as.formula(PCHG ~ 0 + Y0SCALE + Y2SCALE + Y3),
+#   fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ 0+Y0SCALE),
+#   fmla.long = as.formula(PCHG ~ 0 + Y0SCALE),
 #   survdat = survdat.simulation,
 #   longdat = longdat.simulation,
 #   longdat.time = "visittime",
-#   iter_warmup = 1000, iter_sampling = 1000,
-#   chains = 4, parallel_chains = 4, adapt_delta = 0.8, refresh = 200
+#   iter_warmup = 2000, iter_sampling = 3000,
+#   chains = 2, parallel_chains = 2, adapt_delta = 0.8, refresh = 200
 # )
-#
-# parms <- c("beta_tte", "scale_tte", "shape_tte", "beta.y", "sd.y","chgpt_mean", "b_mean", "chgpt_sd", "b_sd", "randeff_corr")
-#
+# #
+# parms <- c("beta_tte", "scale_tte", "shape_tte", "beta_y", "sd_y","chgpt_mean", "b_mean", "chgpt_sd", "b_sd", "randeff_corr")
+# #
 # simulation.results$draws(c("chgpt_mean", "chgpt_sd")) %>% mcmc_trace()
-#
+# #
 # simulation.draws <- simulation.results$draws(parms)
-# dim(simulation.draws)
-# first_chain_draws <- simulation.draws[,1,]
-# mcmc_trace(first_chain_draws)
-#
-# simulation.results$draws(parms) %>% mcmc_hist()
+# # dim(simulation.draws)
+# # first_chain_draws <- simulation.draws[,1,]
+# # mcmc_trace(first_chain_draws)
+# #
+# simulation.results$draws(parms) %>% summarise_draws()
 # simulation.results$draws(c("chgpt_mean", "chgpt_sd")) %>% mcmc_acf()
-# compare <- cbind(simulation.results$draws(parms) %>% summarize_draws(), real = unname(real.parameter))
+# # compare <- cbind(simulation.results$draws(parms) %>% summarize_draws(), real = unname(real.parameter))
