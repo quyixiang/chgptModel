@@ -105,8 +105,8 @@ generate_simulation_data <- function(
     seed = 1) {
   # Set the seed for random number generation
   set.seed(seed)
-  n_final <- n
-  n <- 3 * n
+  # n_final <- n
+  # n <- 3 * n
   # First generate X
   # Get variable names excluding the response variable
   Xtte.name <- all.vars(fmla.tte)[-c(1:2)]
@@ -155,9 +155,7 @@ generate_simulation_data <- function(
   } else {
     survdat$event_years <- rweibullph(Xtte, beta.tte, shape = shape.tte, scale = scale.tte)
   }
-  survdat$nvisits <- ceiling(survdat$event_years / time.interval)
 
-  survdat <- survdat %>% filter(nvisits > 0)
   survdat$id <- 1:nrow(survdat)
 
   # Add censor data (the name of the outcome should be the same with the fmla.tte)
@@ -178,6 +176,10 @@ generate_simulation_data <- function(
   randeff <- rptmvn(randeff.mean, randeff.cov, 0, survdat$event_years)
   survdat <- cbind(survdat, randeff)
 
+  survdat$nvisits <- ceiling(survdat[[Xtte.response.name]] / time.interval)
+
+  survdat <- survdat %>% filter(nvisits > 0)
+
   # Generate longitudinal data
   longdat <- survdat %>%
     filter(nvisits > 0)
@@ -188,8 +190,16 @@ generate_simulation_data <- function(
     group_by(id) %>%
     mutate(visitnum = row_number()) %>%
     rowwise() %>%
-    mutate(rand_val = rnorm(1, mean = 0, sd = time.interval.sd)) %>%
-    mutate(visittime = time.interval * visitnum + rand_val) %>%
+    mutate(rand_val = abs(rnorm(1, mean = 0, sd = time.interval.sd))) %>%
+    mutate(visittime = abs(time.interval * visitnum - rand_val))
+
+  # at least one visit for each subject
+  longdat <- longdat %>%
+    mutate(visittime = if_else(nvisits %in% c(1,2) & visitnum == 1,
+                               0.1 * get(as.character(Xtte.response.name)),
+                               visittime))
+
+  longdat <- longdat %>%
     ungroup() %>%
     mutate(
       delta = visittime - omega,
@@ -212,10 +222,10 @@ generate_simulation_data <- function(
     ungroup()
   survdat <- merge(survdat, longdat %>% select(id, nvisits_aftercensor) %>% distinct(id, .keep_all = TRUE))
 
-  # we only keep these subjects
-  final_id <- unique(longdat$id)[1:n_final]
-  longdat <- longdat %>% filter(id %in% final_id)
-  survdat <- survdat %>% filter(id %in% final_id)
+  # # we only keep these subjects
+  # final_id <- unique(longdat$id)[1:n_final]
+  # longdat <- longdat %>% filter(id %in% final_id)
+  # survdat <- survdat %>% filter(id %in% final_id)
 
   cat(
     paste0(
@@ -245,7 +255,6 @@ generate_simulation_data <- function(
   )
   return(list(survdat = survdat, longdat = longdat, simulation.para = simulation.para))
 }
-
 # # test
 # simulation.list <- generate_simulation_data(
 #   fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ 0+Y0SCALE),
