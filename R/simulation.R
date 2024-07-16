@@ -1,6 +1,7 @@
 library(TruncatedNormal)
 library(randcorr)
 library(dplyr)
+library(mvtnorm)
 rptmvn <- function(mu, sigma, a, b) {
   omegaMean <- mu[1]
   omegaVar <- sigma[1, 1]
@@ -102,6 +103,7 @@ generate_simulation_data <- function(
     beta.y, sd.y,
     randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
     n = 100, censor.parameter, time.interval = 0.1, time.interval.sd = 0.02,
+    dependent.censor = FALSE, dependent.censor.cor = 0.5,
     seed = 1) {
   # Set the seed for random number generation
   set.seed(seed)
@@ -150,17 +152,34 @@ generate_simulation_data <- function(
   survdat <- as.data.frame(X.model)
   survdat$id <- id
   survdat <- survdat[, c("id", names(survdat)[!names(survdat) %in% "id"])]
-  if (normal.tte) {
-    survdat$event_years <- exp(rnorm(n = n, mean = Xtte %*% beta.tte, sd = sd.tte))
-  } else {
-    survdat$event_years <- rweibullph(Xtte, beta.tte, shape = shape.tte, scale = scale.tte)
+  if (dependent.censor) {
+    set.seed(seed)
+    Z_12 = rmvnorm(n, c(0, 0), matrix(c(1, dependent.censor.cor, dependent.censor.cor, 1), 2, 2))
+    U_12 = pnorm(Z_12)
+    if (normal.tte) {
+      survdat$event_years <- exp(qnorm(U_12[, 1], mean = Xtte %*% beta.tte, sd = sd.tte))
+    } else {
+      new_scale = (scale.tte * exp(Xtte %*% beta.tte))^(-1 / shape.tte)
+      survdat$event_years <- qweibull(U_12[, 1], shape = shape.tte, scale = new_scale)
+    }
+  } else{
+    if (normal.tte) {
+      survdat$event_years <- exp(rnorm(n = n, mean = Xtte %*% beta.tte, sd = sd.tte))
+    } else {
+      survdat$event_years <- rweibullph(Xtte, beta.tte, shape = shape.tte, scale = scale.tte)
+    }
   }
 
   survdat$id <- 1:nrow(survdat)
 
   # Add censor data (the name of the outcome should be the same with the fmla.tte)
-  set.seed(seed)
-  survdat$censor_years <- rexp(nrow(survdat), censor.parameter)
+  if (dependent.censor){
+    survdat$censor_years <- qexp(U_12[, 2], rate = censor.parameter)
+  } else {
+    set.seed(seed)
+    survdat$censor_years <- rexp(nrow(survdat), censor.parameter)
+  }
+
   survdat[[Xtte.indicator.name]] <- ifelse(survdat$event_years <= survdat$censor_years, 1, 0)
   survdat[[Xtte.response.name]] <- pmin(survdat$censor_years, survdat$event_years)
 
@@ -259,12 +278,12 @@ generate_simulation_data <- function(
 # simulation.list <- generate_simulation_data(
 #   fmla.tte = as.formula(Surv(PFS_YEARS, PFS_EVENT) ~ 0+Y0SCALE),
 #   fmla.long = as.formula(PCHG ~ 0 + Y0SCALE ),
-#   beta.tte = c(0.1, 0.05, 0.1), scale.tte = 3, shape.tte = 2,
+#   beta.tte = c(0.1), scale.tte = 3, shape.tte = 2,
 #   beta.y = c(0.02, -0.02, 0.03), sd.y = 0.1,
 #   randeff.mean = c(0.5, 0, -1, 1), randeff.sd = rep(0.2, 4), randeff.corr = NULL,
-#   n = 200, censor.parameter = 2, time.interval = 0.1
+#   n = 200, censor.parameter = 2, time.interval = 0.1, dependent.censor = TRUE
 # )
-# #
+# 
 # survdat.simulation <- simulation.list[["survdat"]]
 # longdat.simulation <- simulation.list[["longdat"]]
 #
@@ -302,3 +321,14 @@ generate_simulation_data <- function(
 # simulation.results$draws(parms) %>% summarise_draws()
 # simulation.results$draws(c("chgpt_mean", "chgpt_sd")) %>% mcmc_acf()
 # # compare <- cbind(simulation.results$draws(parms) %>% summarize_draws(), real = unname(real.parameter))
+
+
+# test copula
+# library(mvtnorm)
+# Z_12 = rmvnorm(100000, c(0, 0), matrix(c(1, 0.5, 0.5, 1), 2, 2))
+# U_12 = pnorm(Z_12)
+# hist(U_12[,1])
+# hist(U_12[,2])
+
+# a = qexp(U_12[,1], rate = 23)
+# b = rexp(100000, rate = 23)
